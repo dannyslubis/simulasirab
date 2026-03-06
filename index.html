@@ -114,8 +114,6 @@
 
         let bottles, pipettes, flask, indicator, uiBtn;
 
-        // FUNGSI INIT SEKARANG BEBAS DARI ANGKA 'W' DAN 'H'
-        // Gambar akan otomatis mengikuti ukuran asli file PNG kamu.
         function initGame() {
             bottles = [
                 { id: 'A', x: 45, y: 80, state: 'closed', capacity: 5 },
@@ -142,39 +140,32 @@
         let dragOffsetX = 0, dragOffsetY = 0;
 
         function draw() {
-            // ANTI-BLUR DIAKTIFKAN
             ctx.imageSmoothingEnabled = false;
-
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // Gambar Background (Otomatis penuhi 256x144)
             if(images.bg.complete) ctx.drawImage(images.bg, 0, 0, canvas.width, canvas.height);
 
-            // 1. Gambar Botol (Otomatis baca dimensi asli gambar)
             bottles.forEach(b => {
                 let img = images.b_closed;
                 if (b.state === 'open') img = b.capacity > 0 ? images.b_open : images.b_empty;
                 
                 if(img.complete && img.naturalHeight !== 0) {
-                    b.w = img.width; b.h = img.height; // Set Hitbox otomatis
+                    b.w = img.width; b.h = img.height; 
                     ctx.drawImage(img, Math.round(b.x), Math.round(b.y));
                 }
             });
 
-            // 2. Gambar Labu
             let fImg = getFlaskSprite();
             if(fImg.complete && fImg.naturalHeight !== 0) {
-                flask.w = fImg.width; flask.h = fImg.height; // Set Hitbox otomatis
+                flask.w = fImg.width; flask.h = fImg.height; 
                 ctx.drawImage(fImg, Math.round(flask.x), Math.round(flask.y));
             }
 
-            // 3. Gambar Indikator
             if (indicator.isDetached) {
                 if(images.ppb.complete && images.ppp.complete) {
                     indicator.w = images.ppb.width; indicator.h = images.ppb.height;
                     indicator.cap_w = images.ppp.width; indicator.cap_h = images.ppp.height;
                     
-                    // Supaya botol bawah tetap menempel di meja
                     let yOffset = images.pppb.height - images.ppb.height; 
                     ctx.drawImage(images.ppb, Math.round(indicator.x), Math.round(indicator.y + yOffset)); 
                     ctx.drawImage(images.ppp, Math.round(indicator.cap_x), Math.round(indicator.cap_y)); 
@@ -182,23 +173,21 @@
             } else {
                 if(images.pppb.complete) {
                     indicator.w = images.pppb.width; indicator.h = images.pppb.height;
-                    indicator.cap_w = images.pppb.width; indicator.cap_h = Math.round(images.pppb.height / 2); // Setengah atas untuk tutup
+                    indicator.cap_w = images.pppb.width; indicator.cap_h = Math.round(images.pppb.height / 2); 
                     indicator.cap_x = indicator.x; indicator.cap_y = indicator.y;
                     
                     ctx.drawImage(images.pppb, Math.round(indicator.x), Math.round(indicator.y)); 
                 }
             }
 
-            // 4. Gambar Pipet
             pipettes.forEach(p => {
                 let pImg = images['p' + p.capacity];
                 if(pImg.complete && pImg.naturalHeight !== 0) {
-                    p.w = pImg.width; p.h = pImg.height; // Set Hitbox otomatis
+                    p.w = pImg.width; p.h = pImg.height; 
                     ctx.drawImage(pImg, Math.round(p.x), Math.round(p.y));
                 }
             });
 
-            // 5. Gambar UI Menu
             if(images.ui.complete && images.ui.naturalHeight !== 0) {
                 uiBtn.w = images.ui.width; uiBtn.h = Math.round(images.ui.height / 2);
                 ctx.drawImage(images.ui, Math.round(uiBtn.x), Math.round(uiBtn.y));
@@ -276,9 +265,12 @@
                 } return;
             }
 
+            // PERUBAHAN DI SINI: Botol yang diklik hanya bisa terbuka, tidak bisa ditutup lagi
             bottles.forEach(b => {
                 if (isHit(mx, my, b.x, b.y, b.w, b.h)) {
-                    b.state = (b.state === 'closed') ? 'open' : 'closed';
+                    if (b.state === 'closed') {
+                        b.state = 'open';
+                    }
                 }
             });
         }
