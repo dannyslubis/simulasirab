@@ -23,8 +23,8 @@
         }
         canvas { 
             width: 100%; height: 100%; display: block; 
-            object-fit: contain; image-rendering: pixelated; 
-            touch-action: none; /* Mencegah layar scroll di HP */
+            object-fit: contain; image-rendering: pixelated; /* CSS Pixelated */
+            touch-action: none; 
         }
         
         .overlay {
@@ -108,34 +108,29 @@
             };
         }
 
-        // --- STATE GAME & UKURAN OBJEK (Disesuaikan untuk Aset Cropped) ---
-        // Jika gambarmu terlihat kebesaran/kekecilan, cukup ubah angka 'w' (lebar) dan 'h' (tinggi) di bawah ini!
         let bottles, pipettes, flask, indicator, uiBtn;
 
         function initGame() {
-            // Lebar (w) 32px, Tinggi (h) 50px
+            // TUGAS KAMU: Sesuaikan nilai w (lebar) dan h (tinggi) di bawah ini
+            // agar sesuai dengan bentuk asli dari gambar yang kamu crop!
             bottles = [
                 { id: 'A', x: 45, y: 80, w: 32, h: 50, state: 'closed', capacity: 5 },
                 { id: 'B', x: 85, y: 80, w: 32, h: 50, state: 'closed', capacity: 5 }
             ];
 
-            // Lebar 36px, Tinggi 45px
             flask = { x: 135, y: 85, w: 36, h: 45, a: 0, b: 0, hasIndicator: false };
 
-            // Indikator
             indicator = {
-                x: 185, y: 80, w: 24, h: 50, // Ukuran utuh botol PP
-                cap_x: 185, cap_y: 80, cap_w: 24, cap_h: 24, // Ukuran tutup yang ditarik
+                x: 185, y: 80, w: 24, h: 50, 
+                cap_x: 185, cap_y: 80, cap_w: 24, cap_h: 24, 
                 isDetached: false, location: 'base'
             };
 
-            // Pipet (Lebar 16px, Tinggi 100px)
             pipettes = [
                 { id: 1, x: 10, y: 15, base_x: 10, base_y: 15, w: 16, h: 100, capacity: 0, tag: 'netral', location: 'rack' },
                 { id: 2, x: 28, y: 15, base_x: 28, base_y: 15, w: 16, h: 100, capacity: 0, tag: 'netral', location: 'rack' }
             ];
 
-            // Tombol UI Menu (Pojok kanan atas)
             uiBtn = { x: 236, y: 2, w: 18, h: 18 }; 
         }
 
@@ -144,41 +139,42 @@
         let draggedObj = null; let dragType = null;
         let dragOffsetX = 0, dragOffsetY = 0;
 
-        // --- FUNGSI RENDER UTAMA ---
         function draw() {
+            // KUNCI UTAMA: Mematikan smoothing kanvas internal agar piksel tetap tajam
+            ctx.imageSmoothingEnabled = false;
+
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // Background mengisi penuh kanvas 256x144
+            // Background
             ctx.drawImage(images.bg, 0, 0, canvas.width, canvas.height);
 
-            // 1. Gambar Botol
+            // 1. Gambar Botol (Menggunakan Math.round agar koordinat bernilai bulat utuh)
             bottles.forEach(b => {
                 let img = images.b_closed;
                 if (b.state === 'open') img = b.capacity > 0 ? images.b_open : images.b_empty;
-                ctx.drawImage(img, b.x, b.y, b.w, b.h);
+                ctx.drawImage(img, Math.round(b.x), Math.round(b.y), Math.round(b.w), Math.round(b.h));
             });
 
             // 2. Gambar Labu
-            ctx.drawImage(getFlaskSprite(), flask.x, flask.y, flask.w, flask.h);
+            ctx.drawImage(getFlaskSprite(), Math.round(flask.x), Math.round(flask.y), Math.round(flask.w), Math.round(flask.h));
 
             // 3. Gambar Indikator PP
             if (indicator.isDetached) {
-                // Gambar bagian botol bawah
-                ctx.drawImage(images.ppb, indicator.x, indicator.y + (indicator.h - indicator.h*0.6), indicator.w, indicator.h*0.6); 
-                // Gambar tutup yang sedang ditarik
-                ctx.drawImage(images.ppp, indicator.cap_x, indicator.cap_y, indicator.cap_w, indicator.cap_h); 
+                let botH = indicator.h * 0.6;
+                ctx.drawImage(images.ppb, Math.round(indicator.x), Math.round(indicator.y + (indicator.h - botH)), Math.round(indicator.w), Math.round(botH)); 
+                ctx.drawImage(images.ppp, Math.round(indicator.cap_x), Math.round(indicator.cap_y), Math.round(indicator.cap_w), Math.round(indicator.cap_h)); 
             } else {
-                ctx.drawImage(images.pppb, indicator.x, indicator.y, indicator.w, indicator.h); 
+                ctx.drawImage(images.pppb, Math.round(indicator.x), Math.round(indicator.y), Math.round(indicator.w), Math.round(indicator.h)); 
             }
 
             // 4. Gambar Pipet
             pipettes.forEach(p => {
                 let pImg = images['p' + p.capacity];
-                ctx.drawImage(pImg, p.x, p.y, p.w, p.h);
+                ctx.drawImage(pImg, Math.round(p.x), Math.round(p.y), Math.round(p.w), Math.round(p.h));
             });
 
-            // 5. Gambar UI (Hanya gambar menu yang dimunculkan ukurannya)
-            ctx.drawImage(images.ui, uiBtn.x, uiBtn.y, uiBtn.w, uiBtn.h * 2);
+            // 5. Gambar UI
+            ctx.drawImage(images.ui, Math.round(uiBtn.x), Math.round(uiBtn.y), Math.round(uiBtn.w), Math.round(uiBtn.h * 2));
 
             requestAnimationFrame(draw);
         }
@@ -203,7 +199,6 @@
             return images.l; 
         }
 
-        // --- FUNGSI DETEKSI KOORDINAT ---
         function getPos(e) {
             const rect = canvas.getBoundingClientRect();
             const scaleX = 256 / rect.width; const scaleY = 144 / rect.height;
@@ -221,21 +216,18 @@
             setTimeout(() => { alertMsg.style.display = 'none'; }, 2000);
         }
 
-        // --- LOGIKA INTERAKSI (DRAG, DROP & KLIK) ---
         function handleStart(e) {
             if(e.cancelable) e.preventDefault();
             const pos = getPos(e); const mx = pos.x, my = pos.y;
 
-            // UI Menu
             if (isHit(mx, my, uiBtn.x, uiBtn.y, uiBtn.w, uiBtn.h)) {
                 document.getElementById('menu-overlay').style.display = 'flex'; return;
             }
 
-            // Pipet
             for (let i = pipettes.length - 1; i >= 0; i--) {
                 let p = pipettes[i];
                 if (isHit(mx, my, p.x, p.y, p.w, p.h)) {
-                    if (my <= p.y + 30) { // Area Bulb pencetan (30px teratas)
+                    if (my <= p.y + 30) { 
                         handlePipetteBulb(p); return;
                     } else { 
                         draggedObj = p; dragType = 'pipette';
@@ -244,7 +236,6 @@
                 }
             }
 
-            // Indikator
             let cX = indicator.isDetached ? indicator.cap_x : indicator.x;
             let cY = indicator.isDetached ? indicator.cap_y : indicator.y;
             if (isHit(mx, my, cX, cY, indicator.cap_w, indicator.cap_h)) {
@@ -256,7 +247,6 @@
                 } return;
             }
 
-            // Botol
             bottles.forEach(b => {
                 if (isHit(mx, my, b.x, b.y, b.w, b.h)) {
                     b.state = (b.state === 'closed') ? 'open' : 'closed';
@@ -282,9 +272,8 @@
 
             if (dragType === 'pipette') {
                 let p = draggedObj;
-                let tipX = p.x + p.w / 2; let tipY = p.y + p.h; // Ujung bawah pipet
+                let tipX = p.x + p.w / 2; let tipY = p.y + p.h; 
 
-                // Cek jatuhkan ke botol
                 for (let b of bottles) {
                     if (isHit(tipX, tipY, b.x, b.y, b.w, b.h)) {
                         if (p.tag === 'netral' || p.tag === b.id) {
@@ -294,13 +283,11 @@
                     }
                 }
                 
-                // Cek jatuhkan ke labu
                 if (!dropped && isHit(tipX, tipY, flask.x, flask.y, flask.w, flask.h)) {
                     p.x = flask.x + (flask.w/2) - (p.w/2); p.y = flask.y - p.h + 25; 
                     p.location = 'flask'; dropped = true;
                 }
 
-                // Tumpah ke meja
                 if (!dropped) {
                     if (p.capacity > 0) { p.capacity = 0; showToast("Cairan tumpah!"); }
                     p.x = p.base_x; p.y = p.base_y; p.location = 'rack';
@@ -338,7 +325,6 @@
             }
         }
 
-        // Event Listener
         canvas.addEventListener('mousedown', handleStart);
         canvas.addEventListener('mousemove', handleMove);
         canvas.addEventListener('mouseup', handleEnd);
@@ -348,7 +334,6 @@
         canvas.addEventListener('touchmove', handleMove, {passive: false});
         canvas.addEventListener('touchend', handleEnd, {passive: false});
 
-        // Tombol Pop-up
         document.getElementById('btn-lanjut').addEventListener('click', () => { document.getElementById('menu-overlay').style.display = 'none'; });
         document.getElementById('btn-keluar').addEventListener('click', () => { alert("Keluar dari simulasi..."); });
         document.getElementById('btn-ulangi').addEventListener('click', () => { initGame(); document.getElementById('overfill-overlay').style.display = 'none'; });
