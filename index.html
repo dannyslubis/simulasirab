@@ -23,7 +23,7 @@
         }
         canvas { 
             width: 100%; height: 100%; display: block; 
-            object-fit: contain; image-rendering: pixelated; /* CSS Pixelated */
+            object-fit: contain; image-rendering: pixelated; 
             touch-action: none; 
         }
         
@@ -53,6 +53,7 @@
         #loading-text {
             position: absolute; color: white; font-size: 1.5rem; 
             top: 50%; left: 50%; transform: translate(-50%, -50%);
+            text-align: center;
         }
     </style>
 </head>
@@ -106,32 +107,33 @@
                     loadingText.style.display = 'none'; draw(); 
                 }
             };
+            images[key].onerror = () => {
+                alert(`🚨 ERROR: File "${sources[key]}" tidak ditemukan di GitHub!`);
+            };
         }
 
         let bottles, pipettes, flask, indicator, uiBtn;
 
+        // FUNGSI INIT SEKARANG BEBAS DARI ANGKA 'W' DAN 'H'
+        // Gambar akan otomatis mengikuti ukuran asli file PNG kamu.
         function initGame() {
-            // TUGAS KAMU: Sesuaikan nilai w (lebar) dan h (tinggi) di bawah ini
-            // agar sesuai dengan bentuk asli dari gambar yang kamu crop!
             bottles = [
-                { id: 'A', x: 45, y: 80, w: 32, h: 50, state: 'closed', capacity: 5 },
-                { id: 'B', x: 85, y: 80, w: 32, h: 50, state: 'closed', capacity: 5 }
+                { id: 'A', x: 45, y: 80, state: 'closed', capacity: 5 },
+                { id: 'B', x: 85, y: 80, state: 'closed', capacity: 5 }
             ];
 
-            flask = { x: 135, y: 85, w: 36, h: 45, a: 0, b: 0, hasIndicator: false };
+            flask = { x: 135, y: 85, a: 0, b: 0, hasIndicator: false };
 
             indicator = {
-                x: 185, y: 80, w: 24, h: 50, 
-                cap_x: 185, cap_y: 80, cap_w: 24, cap_h: 24, 
-                isDetached: false, location: 'base'
+                x: 185, y: 80, cap_x: 185, cap_y: 80, isDetached: false, location: 'base'
             };
 
             pipettes = [
-                { id: 1, x: 10, y: 15, base_x: 10, base_y: 15, w: 16, h: 100, capacity: 0, tag: 'netral', location: 'rack' },
-                { id: 2, x: 28, y: 15, base_x: 28, base_y: 15, w: 16, h: 100, capacity: 0, tag: 'netral', location: 'rack' }
+                { id: 1, x: 10, y: 15, base_x: 10, base_y: 15, capacity: 0, tag: 'netral', location: 'rack' },
+                { id: 2, x: 28, y: 15, base_x: 28, base_y: 15, capacity: 0, tag: 'netral', location: 'rack' }
             ];
 
-            uiBtn = { x: 236, y: 2, w: 18, h: 18 }; 
+            uiBtn = { x: 236, y: 2 }; 
         }
 
         initGame();
@@ -140,41 +142,67 @@
         let dragOffsetX = 0, dragOffsetY = 0;
 
         function draw() {
-            // KUNCI UTAMA: Mematikan smoothing kanvas internal agar piksel tetap tajam
+            // ANTI-BLUR DIAKTIFKAN
             ctx.imageSmoothingEnabled = false;
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // Background
-            ctx.drawImage(images.bg, 0, 0, canvas.width, canvas.height);
+            // Gambar Background (Otomatis penuhi 256x144)
+            if(images.bg.complete) ctx.drawImage(images.bg, 0, 0, canvas.width, canvas.height);
 
-            // 1. Gambar Botol (Menggunakan Math.round agar koordinat bernilai bulat utuh)
+            // 1. Gambar Botol (Otomatis baca dimensi asli gambar)
             bottles.forEach(b => {
                 let img = images.b_closed;
                 if (b.state === 'open') img = b.capacity > 0 ? images.b_open : images.b_empty;
-                ctx.drawImage(img, Math.round(b.x), Math.round(b.y), Math.round(b.w), Math.round(b.h));
+                
+                if(img.complete && img.naturalHeight !== 0) {
+                    b.w = img.width; b.h = img.height; // Set Hitbox otomatis
+                    ctx.drawImage(img, Math.round(b.x), Math.round(b.y));
+                }
             });
 
             // 2. Gambar Labu
-            ctx.drawImage(getFlaskSprite(), Math.round(flask.x), Math.round(flask.y), Math.round(flask.w), Math.round(flask.h));
+            let fImg = getFlaskSprite();
+            if(fImg.complete && fImg.naturalHeight !== 0) {
+                flask.w = fImg.width; flask.h = fImg.height; // Set Hitbox otomatis
+                ctx.drawImage(fImg, Math.round(flask.x), Math.round(flask.y));
+            }
 
-            // 3. Gambar Indikator PP
+            // 3. Gambar Indikator
             if (indicator.isDetached) {
-                let botH = indicator.h * 0.6;
-                ctx.drawImage(images.ppb, Math.round(indicator.x), Math.round(indicator.y + (indicator.h - botH)), Math.round(indicator.w), Math.round(botH)); 
-                ctx.drawImage(images.ppp, Math.round(indicator.cap_x), Math.round(indicator.cap_y), Math.round(indicator.cap_w), Math.round(indicator.cap_h)); 
+                if(images.ppb.complete && images.ppp.complete) {
+                    indicator.w = images.ppb.width; indicator.h = images.ppb.height;
+                    indicator.cap_w = images.ppp.width; indicator.cap_h = images.ppp.height;
+                    
+                    // Supaya botol bawah tetap menempel di meja
+                    let yOffset = images.pppb.height - images.ppb.height; 
+                    ctx.drawImage(images.ppb, Math.round(indicator.x), Math.round(indicator.y + yOffset)); 
+                    ctx.drawImage(images.ppp, Math.round(indicator.cap_x), Math.round(indicator.cap_y)); 
+                }
             } else {
-                ctx.drawImage(images.pppb, Math.round(indicator.x), Math.round(indicator.y), Math.round(indicator.w), Math.round(indicator.h)); 
+                if(images.pppb.complete) {
+                    indicator.w = images.pppb.width; indicator.h = images.pppb.height;
+                    indicator.cap_w = images.pppb.width; indicator.cap_h = Math.round(images.pppb.height / 2); // Setengah atas untuk tutup
+                    indicator.cap_x = indicator.x; indicator.cap_y = indicator.y;
+                    
+                    ctx.drawImage(images.pppb, Math.round(indicator.x), Math.round(indicator.y)); 
+                }
             }
 
             // 4. Gambar Pipet
             pipettes.forEach(p => {
                 let pImg = images['p' + p.capacity];
-                ctx.drawImage(pImg, Math.round(p.x), Math.round(p.y), Math.round(p.w), Math.round(p.h));
+                if(pImg.complete && pImg.naturalHeight !== 0) {
+                    p.w = pImg.width; p.h = pImg.height; // Set Hitbox otomatis
+                    ctx.drawImage(pImg, Math.round(p.x), Math.round(p.y));
+                }
             });
 
-            // 5. Gambar UI
-            ctx.drawImage(images.ui, Math.round(uiBtn.x), Math.round(uiBtn.y), Math.round(uiBtn.w), Math.round(uiBtn.h * 2));
+            // 5. Gambar UI Menu
+            if(images.ui.complete && images.ui.naturalHeight !== 0) {
+                uiBtn.w = images.ui.width; uiBtn.h = Math.round(images.ui.height / 2);
+                ctx.drawImage(images.ui, Math.round(uiBtn.x), Math.round(uiBtn.y));
+            }
 
             requestAnimationFrame(draw);
         }
@@ -208,6 +236,7 @@
         }
 
         function isHit(mx, my, ox, oy, ow, oh) {
+            if(!ow || !oh) return false;
             return mx >= ox && mx <= ox + ow && my >= oy && my <= oy + oh;
         }
 
